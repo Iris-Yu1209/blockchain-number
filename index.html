@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Contract Interaction</title>
+
+    <!-- Import Google Font: Protest Guerrilla -->
+    <link href="https://fonts.googleapis.com/css2?family=Protest+Guerrilla&display=swap" rel="stylesheet">
+    
+    <!-- Ethers.js -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.3.umd.min.js" type="application/javascript"></script>
+    
+    <!-- Style Section -->
+    <style>
+        body {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 60%, #fad0c4 100%);
+            font-family: 'Protest Guerrilla', sans-serif;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 4em;
+            color: #ff8c00; /* Bright, saturated orange */
+            text-shadow: 2px 2px #ff4500;
+            font-weight: bold;
+        }
+        
+        h3 {
+            color: #ffa07a; /* Soft light orange */
+            font-size: 2em;
+        }
+        
+        #connectButton, #setNumButton, #getNumButton {
+            background-color: #ffb347; /* Lighter orange */
+            border: none;
+            color: white;
+            padding: 20px 40px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1.5em;
+            margin: 10px 5px;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 3px 3px #ff8c00;
+        }
+        
+        #connectButton:hover, #setNumButton:hover, #getNumButton:hover {
+            background-color: #ffcc70;
+            box-shadow: none;
+        }
+        
+        input[type="number"] {
+            padding: 15px;
+            font-size: 1.5em;
+            border: 2px solid #ffa07a;
+            border-radius: 10px;
+            margin: 10px 0;
+            width: 250px;
+        }
+        
+        #walletAddress, #currentNum {
+            font-size: 1.8em;
+            margin-top: 20px;
+            color: #ffffff; /* Set to white for visibility */
+            font-weight: bold;
+        }
+
+        p {
+            color: #ffffff;
+            font-size: 1.3em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Smart Contract Interaction</h1>
+    
+    <!-- Connect Metamask button -->
+    <button id="connectButton">Connect MetaMask</button>
+    
+    <!-- Display connected wallet address -->
+    <p id="walletAddress">Wallet Address: Not connected</p>
+    
+    <!-- Set Num Form -->
+    <h3>Set a Number</h3>
+    <input type="number" id="numInput" placeholder="Enter number" />
+    <br>
+    <button id="setNumButton">Set Number</button>
+
+    <!-- Get Num Form -->
+    <h3>Get Current Number</h3>
+    <button id="getNumButton">Get Number</button>
+    <p id="currentNum">Current Number: N/A</p>
+
+    <script>
+        const contractAddress = "0xadf66592080bF760944B7335E026A78D083583a2";
+        const contractABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "imput",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "setNum",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "num",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        // Connect to MetaMask
+        document.getElementById('connectButton').onclick = async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                await ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                document.getElementById('walletAddress').innerText = `Wallet Address: ${await signer.getAddress()}`;
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                alert('MetaMask connected');
+            } else {
+                alert('MetaMask is not installed');
+            }
+        };
+
+        // Set the number
+        document.getElementById('setNumButton').onclick = async () => {
+            const num = document.getElementById('numInput').value;
+            if (!num) {
+                alert('Please enter a number');
+                return;
+            }
+            try {
+                const tx = await contract.setNum(num);
+                await tx.wait();
+                alert('Number has been set');
+            } catch (error) {
+                console.error(error);
+                alert('Transaction failed');
+            }
+        };
+
+        // Get the current number
+        document.getElementById('getNumButton').onclick = async () => {
+            try {
+                const currentNum = await contract.num();
+                document.getElementById('currentNum').innerText = `Current Number: ${currentNum}`;
+            } catch (error) {
+                console.error(error);
+                alert('Failed to fetch the current number');
+            }
+        };
+    </script>
+</body>
+</html>
