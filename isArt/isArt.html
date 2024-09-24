@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Feeding Game</title>
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.5.3/dist/web3.min.js"></script>
+    <style>
+        body {
+            background-color: #FFF2CC; /* 调高一点点饱和度的淡黄色背景 */
+            font-family: 'Comic Sans MS', 'Chalkboard', sans-serif;
+            text-align: center;
+            color: #FF6347; /* 红色调的字体 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow: hidden;
+            padding: 20px; /* 添加一些内边距 */
+        }
+
+        /* 添加狗狗爪印背景 */
+        body::before {
+            content: '';
+            background-image: url('pawprint.png'); /* 替换为爪印图像 */
+            opacity: 0.2;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-repeat: repeat;
+            z-index: -1;
+        }
+
+        h1 {
+            font-size: 60px; /* 增大字体 */
+            font-weight: bold; /* 加粗字体 */
+            margin: 10px; /* 减少一些间距 */
+            text-shadow: 2px 2px 5px #FF69B4;
+            position: relative;
+            top: 0px; /* 向上移动 */
+        }
+
+        p {
+            font-size: 24px; /* 增大字体 */
+            margin: 5px;
+            text-shadow: 1px 1px 3px #FF69B4;
+            position: relative;
+            top: -10px; /* 向上移动一点 */
+        }
+
+        #dogImage {
+            transition: width 0.3s, height 0.3s;
+            display: block;
+            margin: 20px auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        #feedButton {
+            background-color: #FF69B4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 28px; /* 增大字体 */
+            cursor: pointer;
+            border-radius: 15px;
+            margin-top: 20px;
+            font-family: 'Comic Sans MS', 'Chalkboard', sans-serif; /* 可爱字体 */
+            box-shadow: 2px 2px 8px #FF1493;
+            transition: background-color 0.3s, transform 0.3s;
+            z-index: 1;
+        }
+
+        #feedButton:hover {
+            background-color: #FF1493;
+            transform: scale(1.1);
+        }
+
+        #statusMessage {
+            font-size: 22px; /* 增大字体 */
+            margin-top: 10px;
+            color: #FF6347;
+            text-shadow: 1px 1px 2px #FF69B4;
+            z-index: 1;
+            position: relative;
+            top: 30px;
+        }
+
+        /* 显示狗狗大小信息 */
+        #dogSizeInfo {
+            font-size: 22px;
+            color: #FF6347;
+            text-shadow: 1px 1px 2px #FF69B4;
+            margin: 10px; /* 减少一些间距 */
+            position: relative;
+            top: -10px; /* 向上移动一点 */
+        }
+    </style>
+</head>
+<body>
+    <h1>FEEEED MEEEEEE!!!</h1>
+    <p id="dogSizeInfo">Current Dog Size: <span id="dogSize">Loading...</span> px</p>
+    <img id="dogImage" src="dog.png" alt="Cartoon Dog" width="100" height="100">
+    <br>
+    <button id="feedButton">Feed the Dog</button>
+    <p id="statusMessage"></p>
+
+    <script>
+        // 合约地址和ABI
+        const contractAddress = "0x81FF27ce54C2f5274843e8E86EF7EC51fEDEd6EC";
+        const contractABI = [
+            {
+                "inputs": [],
+                "name": "feedDog",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "inputs": [],
+                "name": "dogSize",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getDogSize",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        // 初始化Web3
+        let web3;
+        let contract;
+
+        async function init() {
+            if (window.ethereum) {
+                try {
+                    // 请求用户授权
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+
+                    // 初始化合约实例
+                    contract = new web3.eth.Contract(contractABI, contractAddress);
+
+                    // 显示当前小狗大小
+                    await updateDogSize();
+
+                    // 绑定投喂按钮事件
+                    document.getElementById('feedButton').onclick = feedDog;
+                } catch (error) {
+                    console.error("User denied account access", error);
+                    document.getElementById('statusMessage').innerText = "Please connect to MetaMask.";
+                }
+            } else {
+                alert('Please install MetaMask!');
+            }
+        }
+
+        // 获取并显示小狗当前大小
+        async function updateDogSize() {
+            try {
+                const size = await contract.methods.getDogSize().call();
+                document.getElementById('dogSize').innerText = size;
+
+                // 更新小狗图像大小
+                const dogImage = document.getElementById('dogImage');
+                dogImage.style.width = `${size}px`;
+                dogImage.style.height = `${size}px`;
+            } catch (error) {
+                console.error(error);
+                document.getElementById('statusMessage').innerText = "Failed to fetch dog size.";
+            }
+        }
+
+        // 投喂小狗
+        async function feedDog() {
+            document.getElementById('statusMessage').innerText = "Feeding the dog...";
+            try {
+                const accounts = await web3.eth.getAccounts();
+                await contract.methods.feedDog().send({ from: accounts[0] });
+                document.getElementById('statusMessage').innerText = "Successfully fed the dog!";
+                
+                // 更新小狗大小
+                await updateDogSize();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('statusMessage').innerText = "Failed to feed the dog.";
+            }
+        }
+
+        // 初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
